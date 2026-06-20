@@ -395,8 +395,11 @@ STRICT RULES:
 - Return valid JSON only. No text before or after the JSON object.
 - Max 5 findings.
 - No newline characters inside string values — use spaces instead.
+- In "snippet" and "remediation_code" fields, write short code on a SINGLE line separated by spaces or semicolons. Do NOT use real line breaks. Escape every double-quote character inside strings as \\" and every backslash as \\\\.
+- Keep every string value under 200 characters.
 - risk_score is an integer from 0 to 100.
-- severity must be exactly one of: Critical, High, Medium, Low`;
+- severity must be exactly one of: Critical, High, Medium, Low
+- Before finishing, verify the JSON is syntactically valid: every array element separated by a comma, every object closed properly, no trailing commas.`;
 
 // ─── KEY SCREEN ──────────────────────────────────────────────────────────────
 document.getElementById('codeArea').value = SAMPLE;
@@ -542,10 +545,23 @@ function extractJSON(str) {
   var start = str.indexOf('{');
   var end   = str.lastIndexOf('}');
   if (start === -1 || end === -1) throw new Error('No JSON object found in response');
+  var slice = str.slice(start, end+1);
+
+  // Attempt 1: parse as-is
   try {
-    return JSON.parse(str.slice(start, end+1));
-  } catch(e) {
-    throw new Error('Response was cut off before completing. Try again, or paste a shorter code snippet.');
+    return JSON.parse(slice);
+  } catch(e1) {
+    // Attempt 2: common auto-repairs
+    var repaired = slice
+      .replace(/,\s*([\]}])/g, '$1')         // remove trailing commas before ] or }
+      .replace(/[\u0000-\u001F]+/g, ' ')      // strip raw control chars / unescaped newlines inside strings
+      .replace(/\\n/g, ' ')                   // collapse escaped newlines to spaces
+      .replace(/\t/g, ' ');
+    try {
+      return JSON.parse(repaired);
+    } catch(e2) {
+      throw new Error('The AI returned malformed JSON (' + e2.message + '). Click "Run Security Audit" again — this is usually a one-time hiccup.');
+    }
   }
 }
 
