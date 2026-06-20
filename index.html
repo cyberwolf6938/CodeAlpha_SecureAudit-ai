@@ -393,7 +393,7 @@ Return this exact JSON structure:
 
 STRICT RULES:
 - Return valid JSON only. No text before or after the JSON object.
-- Max 8 findings.
+- Max 5 findings.
 - No newline characters inside string values — use spaces instead.
 - risk_score is an integer from 0 to 100.
 - severity must be exactly one of: Critical, High, Medium, Low`;
@@ -510,7 +510,7 @@ async function runAudit() {
         body: {
           contents: [{ parts: [{ text: 'File: '+filename+'\n\n'+code }] }],
           systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-          generationConfig: { maxOutputTokens: 4000, temperature: 0.4 }
+          generationConfig: { maxOutputTokens: 8000, temperature: 0.4 }
         }
       })
     });
@@ -542,7 +542,11 @@ function extractJSON(str) {
   var start = str.indexOf('{');
   var end   = str.lastIndexOf('}');
   if (start === -1 || end === -1) throw new Error('No JSON object found in response');
-  return JSON.parse(str.slice(start, end+1));
+  try {
+    return JSON.parse(str.slice(start, end+1));
+  } catch(e) {
+    throw new Error('Response was cut off before completing. Try again, or paste a shorter code snippet.');
+  }
 }
 
 // ─── RENDER ──────────────────────────────────────────────────────────────────
