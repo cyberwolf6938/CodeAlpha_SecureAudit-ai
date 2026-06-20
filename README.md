@@ -118,8 +118,8 @@ MIT License — free to use, modify, and share.
 
 ## 👨‍💻 Author
 
-Built by **[Your Name]**
-🔗 [LinkedIn](www.linkedin.com/in/faiz-uddin-8bbb39348) · 🐙 [GitHub](https://github.com/cyberwolf6938)
+Built by **[CYBERWOLF]**
+🔗 [LinkedIn](#) · 🐙 [GitHub](https://github.com/cyberwolf6938)
 
 ---
 
