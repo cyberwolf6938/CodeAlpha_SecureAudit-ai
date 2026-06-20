@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SecureAudit.ai — Node.js Security Auditor</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0A0C10;color:#E0E6F0;font-family:'Courier New',monospace;min-height:100vh}
+  input,textarea,button,select{font-family:'Courier New',monospace}
+  ::-webkit-scrollbar{width:6px;height:6px}
+  ::-webkit-scrollbar-track{background:#0A0C10}
+  ::-webkit-scrollbar-thumb{background:#1A2030;border-radius:3px}
+
+  /* KEY SCREEN */
+  #keyScreen{min-height:100vh;display:flex;flex-direction:column}
+  .ks-header{border-bottom:1px solid #1A2030;padding:16px 24px;display:flex;align-items:center;gap:12px;background:#0D1018}
+  .logo-box{width:36px;height:36px;background:linear-gradient(135deg,#FF3B3B,#FF8C00);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+  .logo-title{font-weight:700;font-size:16px;color:#F0F4FF}
+  .logo-title span{color:#FF3B3B}
+  .logo-sub{font-size:10px;color:#445;letter-spacing:.12em;text-transform:uppercase}
+  .ks-body{flex:1;display:flex;align-items:center;justify-content:center;padding:24px}
+  .ks-card{width:100%;max-width:480px;background:#0D1018;border:1px solid #1A2030;border-radius:16px;overflow:hidden}
+  .ks-card-head{background:linear-gradient(135deg,#FF3B3B18,#FF8C0010);border-bottom:1px solid #1A2030;padding:28px 32px}
+  .ks-card-body{padding:28px 32px}
+  .step-label{font-size:10px;text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-bottom:10px}
+  .get-key-link{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#FF8C0011;border:1px solid #FF8C0033;border-radius:8px;text-decoration:none;color:#FF8C00;font-size:12px}
+  .key-hints{font-size:10px;color:#445;margin-top:7px;line-height:1.6}
+  .key-input-wrap{position:relative;margin-bottom:6px}
+  .key-input{width:100%;padding:12px 44px 12px 14px;background:#060810;border:1px solid #1A2030;border-radius:8px;color:#C9D6F0;font-size:12px;font-family:'Courier New',monospace;outline:none;transition:border-color .2s}
+  .key-input:focus{border-color:#4FC3F7}
+  .key-input.err{border-color:#FF3B3B}
+  .toggle-show{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#445;cursor:pointer;font-size:14px;padding:0}
+  .err-msg{font-size:11px;color:#FF6B6B;margin-top:5px;min-height:16px}
+  .start-btn{width:100%;padding:13px 0;border-radius:9px;border:none;font-weight:700;font-size:13px;letter-spacing:.05em;cursor:pointer;transition:opacity .2s;margin-top:8px}
+  .start-btn:disabled{background:#1A2030;color:#445;cursor:not-allowed}
+  .start-btn:not(:disabled){background:linear-gradient(135deg,#FF3B3B,#FF6B00);color:#fff}
+  .privacy-note{margin-top:16px;padding:10px 14px;background:#060810;border-radius:7px;border:1px solid #1A2030;font-size:10px;color:#445;line-height:1.7}
+  .privacy-note strong{color:#556}
+
+  /* APP */
+  #app{display:none;flex-direction:column;min-height:100vh}
+  .app-header{border-bottom:1px solid #1A2030;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;background:#0D1018;flex-shrink:0}
+  .header-badges{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+  .badge{font-size:10px;padding:3px 8px;border-radius:4px;border:1px solid #1A2030;color:#445}
+  .badge-green{color:#4CAF50;border-color:#4CAF5033;background:#4CAF5011}
+  .badge-red{color:#FF3B3B;border-color:#FF3B3B33;background:#FF3B3B11;cursor:pointer}
+  .app-body{display:flex;flex:1;overflow:hidden;min-height:0}
+
+  /* LEFT PANEL */
+  .left-panel{width:380px;border-right:1px solid #1A2030;display:flex;flex-direction:column;background:#0D1018;flex-shrink:0}
+  .panel-bar{padding:11px 14px;border-bottom:1px solid #141822;display:flex;justify-content:space-between;align-items:center}
+  .panel-label{font-size:10px;color:#556;letter-spacing:.1em;text-transform:uppercase}
+  .upload-btn{font-size:10px;color:#4FC3F7;background:#4FC3F711;border:1px solid #4FC3F733;border-radius:5px;padding:4px 10px;cursor:pointer}
+  .filename-bar{padding:6px 14px;border-bottom:1px solid #141822;background:#060810}
+  .filename-input{background:none;border:none;color:#4FC3F7;font-size:11px;width:100%;outline:none}
+  .code-area{flex:1;background:#060810;border:none;color:#C9D6F0;font-size:11.5px;line-height:1.7;padding:14px;resize:none;outline:none;overflow-y:auto;tab-size:2}
+  .run-wrap{padding:13px;border-top:1px solid #1A2030}
+  .run-btn{width:100%;padding:11px 0;border-radius:8px;border:none;font-weight:700;font-size:13px;letter-spacing:.05em;cursor:pointer}
+  .run-btn:disabled{background:#1A2030;color:#445;cursor:not-allowed}
+  .run-btn:not(:disabled){background:linear-gradient(135deg,#FF3B3B,#FF6B00);color:#fff}
+  .run-hint{text-align:center;font-size:10px;color:#334;margin-top:7px}
+  .run-err{margin-top:9px;background:#2D0A0A;border:1px solid #FF3B3B55;border-radius:6px;padding:10px 12px;font-size:11px;color:#FF6B6B;line-height:1.5}
+
+  /* RIGHT PANEL */
+  .right-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+  .risk-banner{padding:12px 20px;border-bottom:1px solid #1A2030;background:#0D1018;display:flex;gap:22px;align-items:center;flex-wrap:wrap;flex-shrink:0}
+  .risk-score-val{font-size:26px;font-weight:700}
+  .risk-score-lbl{font-size:11px;margin-left:6px}
+  .divider-v{width:1px;height:32px;background:#1A2030;flex-shrink:0}
+  .sev-count-lbl{font-size:10px;color:#445;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px}
+  .sev-count-val{font-size:20px;font-weight:700}
+  .summary-text{margin-left:auto;max-width:280px;font-size:11px;color:#6A7A9A;line-height:1.5;font-style:italic}
+  .tabs{display:flex;border-bottom:1px solid #1A2030;background:#0D1018;padding-left:20px;flex-shrink:0;overflow-x:auto}
+  .tab-btn{padding:9px 13px;border:none;background:none;cursor:pointer;font-size:11px;color:#445;border-bottom:2px solid transparent;white-space:nowrap}
+  .tab-btn.active{color:#E0E6F0;border-bottom:2px solid #FF3B3B}
+  .content{flex:1;overflow-y:auto;padding:18px 20px}
+
+  /* EMPTY / LOADING */
+  .empty-state{text-align:center;max-width:440px;margin:40px auto 0}
+  .empty-icon{font-size:44px;margin-bottom:14px}
+  .empty-title{font-size:17px;font-weight:700;color:#E0E6F0;margin-bottom:8px}
+  .empty-desc{font-size:12px;color:#445;line-height:1.8;margin-bottom:22px}
+  .tag-list{display:flex;gap:7px;justify-content:center;flex-wrap:wrap}
+  .tag{font-size:10px;padding:4px 11px;border-radius:20px;border:1px solid #1A2030;color:#556}
+  .loading-state{text-align:center;padding-top:50px}
+  .spin{display:inline-block;font-size:30px;animation:spin 1s linear infinite;margin-bottom:14px}
+  @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+  /* FILTER BAR */
+  .filter-bar{display:flex;gap:7px;margin-bottom:15px;flex-wrap:wrap}
+  .filter-btn{padding:4px 12px;border-radius:20px;border:1px solid #1A2030;background:transparent;color:#445;font-size:10px;cursor:pointer}
+  .filter-btn.active-all{border-color:#E0E6F0;background:#E0E6F011;color:#E0E6F0}
+  .filter-btn.active-Critical{border-color:#FF3B3B;background:#FF3B3B22;color:#FF3B3B}
+  .filter-btn.active-High{border-color:#FF8C00;background:#FF8C0022;color:#FF8C00}
+  .filter-btn.active-Medium{border-color:#FFD700;background:#FFD70022;color:#FFD700}
+  .filter-btn.active-Low{border-color:#4FC3F7;background:#4FC3F722;color:#4FC3F7}
+
+  /* FINDING CARDS */
+  .finding-card{border-radius:10px;margin-bottom:11px;overflow:hidden}
+  .finding-header{padding:11px 15px;cursor:pointer;display:flex;align-items:center;gap:9px}
+  .finding-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  .finding-id{font-size:10px;font-weight:700;min-width:52px}
+  .finding-sev{font-size:10px;padding:2px 8px;border-radius:4px;min-width:65px;text-align:center}
+  .finding-type{font-size:12px;color:#C9D6F0;flex:1}
+  .finding-loc{font-size:10px;color:#445}
+  .finding-toggle{color:#445;font-size:11px;margin-left:5px}
+  .finding-body{padding:13px 15px}
+  .sub-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px}
+  .code-block{border-radius:6px;padding:9px 12px;font-size:11px;overflow-x:auto;margin:0;line-height:1.6;white-space:pre-wrap;word-break:break-all;border:1px solid #1A2030}
+  .code-vuln{background:#060810;color:#FF8C00;border-color:#1A2030}
+  .code-fix{background:#001B0D;color:#4CAF50;border-color:#00FF8833}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+  .text-sm{font-size:11px;color:#8A9ABB;line-height:1.6}
+  .text-sm-i{font-size:11px;color:#8A9ABB;line-height:1.6;font-style:italic}
+  .test-item{font-size:11px;color:#7A8A9A;padding:3px 0 3px 12px;border-left:2px solid #FFD70033;margin-bottom:4px;line-height:1.5}
+
+  /* ROADMAP */
+  .roadmap-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:15px}
+  .roadmap-card{background:#0D1018;border:1px solid #1A2030;border-radius:10px;padding:15px}
+  .roadmap-head{display:flex;align-items:center;gap:9px;margin-bottom:13px}
+  .roadmap-title{font-weight:700;font-size:12px}
+  .roadmap-sub{font-size:10px;color:#445}
+  .roadmap-item{display:flex;gap:9px;margin-bottom:8px}
+  .roadmap-dot{width:5px;height:5px;border-radius:50%;margin-top:6px;flex-shrink:0}
+
+  /* TOOLS */
+  .tool-card{background:#0D1018;border:1px solid #1A2030;border-radius:9px;padding:15px;margin-bottom:11px}
+  .tool-head{display:flex;gap:9px;align-items:center;margin-bottom:9px}
+  .tool-name{font-weight:700;font-size:12px;color:#E0E6F0}
+  .tool-purpose{font-size:10px;color:#445;padding:2px 8px;border:1px solid #1A2030;border-radius:4px}
+  .cmd-block{background:#060810;border:1px solid #1A2030;border-radius:6px;padding:8px 12px;font-size:11px;color:#4CAF50;overflow-x:auto;white-space:pre}
+
+  /* DEPS */
+  .deps-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+  .dep-card{background:#0D1018;border-radius:9px;padding:15px}
+  .dep-item{font-size:11px;padding:4px 0;border-bottom:1px solid #1A2030;line-height:1.5}
+  .dep-full{grid-column:1/-1;background:#0D1018;border:1px solid #1A2030;border-radius:9px;padding:15px}
+
+  /* PRACTICES */
+  .practices-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:9px}
+  .practice-item{background:#0D1018;border:1px solid #1A2030;border-radius:8px;padding:11px 13px;display:flex;gap:9px}
+  .uncertainty-box{margin-top:18px;background:#1A1500;border:1px solid #FFD70044;border-radius:9px;padding:15px}
+  .uncertainty-item{font-size:11px;color:#9A8A6A;padding:3px 0;border-bottom:1px solid #2A2010}
+
+  footer{border-top:1px solid #1A2030;padding:9px 22px;display:flex;justify-content:space-between;background:#0D1018;flex-shrink:0;font-size:10px;color:#334}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════ KEY SCREEN ══════════════════════════ -->
+<div id="keyScreen">
+  <header class="ks-header">
+    <div class="logo-box">🛡</div>
+    <div>
+      <div class="logo-title">SecureAudit<span>.ai</span></div>
+      <div class="logo-sub">Node.js · Express · PostgreSQL</div>
+    </div>
+  </header>
+
+  <div class="ks-body">
+    <div class="ks-card">
+      <div class="ks-card-head">
+        <div style="font-size:32px;margin-bottom:12px">🔐</div>
+        <div style="font-size:18px;font-weight:700;color:#F0F4FF;margin-bottom:6px">Enter Your API Key</div>
+        <div style="font-size:12px;color:#6A7A9A;line-height:1.7">
+          SecureAudit.ai uses the Google Gemini API to analyze your code.
+          Each user provides their own key — your key is never stored or shared.
+        </div>
+      </div>
+      <div class="ks-card-body">
+
+        <!-- Step 1 -->
+        <div style="margin-bottom:20px">
+          <div class="step-label" style="color:#FF8C00">Step 1 — Get Your Free Key</div>
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" class="get-key-link">
+            <span>🌐 aistudio.google.com → Get API Key → Create Key</span>
+            <span style="font-size:14px">↗</span>
+          </a>
+          <div class="key-hints">✓ Free Google account &nbsp;·&nbsp; ✓ No credit card needed &nbsp;·&nbsp; ✓ Takes 1 minute</div>
+        </div>
+
+        <!-- Step 2 -->
+        <div style="margin-bottom:22px">
+          <div class="step-label" style="color:#4FC3F7">Step 2 — Paste Your Key Below</div>
+          <div class="key-input-wrap">
+            <input id="keyInput" type="password" class="key-input" placeholder="Paste your Gemini API key here" oninput="clearKeyErr()" />
+            <button class="toggle-show" onclick="toggleShow()" id="toggleBtn">👁</button>
+          </div>
+          <div class="err-msg" id="keyErr"></div>
+        </div>
+
+        <button class="start-btn" id="startBtn" onclick="handleStart()">▶ &nbsp;Start Auditing</button>
+
+        <div class="privacy-note">
+          🔒 <strong>Privacy:</strong> Your API key is kept in your browser memory only during this session.
+          It is never saved to a database, never sent to our servers, and disappears when you close the tab.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span>Powered by CYBERWOLF · OWASP Top 10 · SAST/SCA</span>
+    <span>For educational &amp; professional security review</span>
+  </footer>
+</div>
+
+<!-- ═══════════════════════════════════ MAIN APP ════════════════════════════ -->
+<div id="app">
+  <header class="app-header">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="logo-box">🛡</div>
+      <div>
+        <div class="logo-title">SecureAudit<span>.ai</span></div>
+        <div class="logo-sub">Node.js · Express · PostgreSQL</div>
+      </div>
+    </div>
+    <div class="header-badges">
+      <span class="badge">OWASP Top 10</span>
+      <span class="badge">SAST/SCA</span>
+      <span class="badge badge-green">🔑 Key Active</span>
+      <span class="badge badge-red" onclick="changeKey()">Change Key</span>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <!-- Left Panel -->
+    <div class="left-panel">
+      <div class="panel-bar">
+        <span class="panel-label">Source Code</span>
+        <button class="upload-btn" onclick="document.getElementById('fileInput').click()">Upload .js / .ts</button>
+        <input type="file" id="fileInput" accept=".js,.ts,.mjs" style="display:none" onchange="handleFile(event)"/>
+      </div>
+      <div class="filename-bar">
+        <input class="filename-input" id="filenameInput" value="src/routes/user.js" placeholder="filename.js"/>
+      </div>
+      <textarea class="code-area" id="codeArea" spellcheck="false" placeholder="// Paste your Node.js / Express code here…"></textarea>
+      <div class="run-wrap">
+        <button class="run-btn" id="runBtn" onclick="runAudit()">▶ &nbsp;Run Security Audit</button>
+        <div class="run-hint" id="runHint">Sample code loaded — click to audit</div>
+        <div class="run-err" id="runErr" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="right-panel">
+      <!-- Risk Banner -->
+      <div class="risk-banner" id="riskBanner" style="display:none">
+        <div>
+          <div style="font-size:10px;color:#445;text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px">Risk Score</div>
+          <div>
+            <span class="risk-score-val" id="riskScoreVal">0</span>
+            <span class="risk-score-lbl" id="riskScoreLbl"></span>
+          </div>
+        </div>
+        <div class="divider-v"></div>
+        <div><div class="sev-count-lbl">Critical</div><div class="sev-count-val" id="cntCritical" style="color:#FF3B3B">0</div></div>
+        <div><div class="sev-count-lbl">High</div><div class="sev-count-val" id="cntHigh" style="color:#FF8C00">0</div></div>
+        <div><div class="sev-count-lbl">Medium</div><div class="sev-count-val" id="cntMedium" style="color:#FFD700">0</div></div>
+        <div><div class="sev-count-lbl">Low</div><div class="sev-count-val" id="cntLow" style="color:#4FC3F7">0</div></div>
+        <div class="summary-text" id="summaryText"></div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs" id="tabs" style="display:none">
+        <button class="tab-btn active" onclick="switchTab('findings',this)" id="tab-findings">Findings</button>
+        <button class="tab-btn" onclick="switchTab('roadmap',this)" id="tab-roadmap">Roadmap</button>
+        <button class="tab-btn" onclick="switchTab('tools',this)" id="tab-tools">SAST Tools</button>
+        <button class="tab-btn" onclick="switchTab('deps',this)" id="tab-deps">Dependencies</button>
+        <button class="tab-btn" onclick="switchTab('practices',this)" id="tab-practices">Best Practices</button>
+      </div>
+
+      <!-- Content -->
+      <div class="content" id="content">
+        <!-- Empty state -->
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon">🛡️</div>
+          <div class="empty-title">Ready to Audit</div>
+          <div class="empty-desc">Your API key is active. Paste or upload your Node.js / Express code on the left, then click <strong style="color:#FF8C00">Run Security Audit</strong>.</div>
+          <div class="tag-list">
+            <span class="tag">SQL Injection</span>
+            <span class="tag">Broken Auth</span>
+            <span class="tag">IDOR</span>
+            <span class="tag">Hardcoded Secrets</span>
+            <span class="tag">Weak Crypto</span>
+            <span class="tag">XSS</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span>Powered by CYBERWOLF · OWASP Top 10 · SAST/SCA</span>
+    <span>For educational &amp; professional security review</span>
+  </footer>
+</div>
+
+<script>
+// ─── GLOBALS ────────────────────────────────────────────────────────────────
+var API_KEY = '';
+var REPORT  = null;
+var FILTER  = 'All';
+var CUR_TAB = 'findings';
+
+var SAMPLE = `// src/routes/user.js
+const express = require('express');
+const router = express.Router();
+const db = require('../db');
+const jwt = require('jsonwebtoken');
+
+const SECRET = "mysecret123"; // hardcoded secret
+
+router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+  const q = \`SELECT * FROM users WHERE email='\${email}' AND password='\${password}'\`;
+  const result = await db.query(q);
+  if (result.rows.length > 0) {
+    const token = jwt.sign({ id: result.rows[0].id }, SECRET);
+    res.json({ token });
+  } else {
+    res.status(401).json({ error: 'Invalid credentials' });
+  }
+});
+
+router.get('/profile/:id', async (req, res) => {
+  const { id } = req.params;
+  const user = await db.query(\`SELECT * FROM users WHERE id=\${id}\`);
+  res.json(user.rows[0]);
+});
+
+router.post('/register', async (req, res) => {
+  const { username, email, password } = req.body;
+  await db.query(\`INSERT INTO users (username,email,password) VALUES ('\${username}','\${email}','\${password}')\`);
+  res.json({ message: 'User created' });
+});
+
+module.exports = router;`;
+
+var SEV_COLORS = {
+  Critical: { color:'#FF3B3B', bg:'#2D0A0A', border:'#FF3B3B40', badge:'#FF3B3B22' },
+  High:     { color:'#FF8C00', bg:'#1E1000', border:'#FF8C0040', badge:'#FF8C0022' },
+  Medium:   { color:'#FFD700', bg:'#1A1500', border:'#FFD70040', badge:'#FFD70022' },
+  Low:      { color:'#4FC3F7', bg:'#001B2E', border:'#4FC3F740', badge:'#4FC3F722' },
+};
+
+var TYPE_ICONS = {
+  'SQL Injection':'⚡','Hardcoded Secret':'🔑','IDOR':'🔓',
+  'Broken Authentication':'🔐','Weak Crypto':'🛡️',
+  'Missing Authorization':'👤','Information Disclosure':'📢',
+  'Insecure JWT':'🪙','XSS':'💉'
+};
+
+var SYSTEM_PROMPT = `You are a senior Node.js/Express security auditor. Analyze the code and return ONLY a raw JSON object (no markdown, no backticks, no explanation outside the JSON).
+
+Return this exact JSON structure:
+{
+  "summary": "one sentence risk summary",
+  "risk_score": 0,
+  "findings": [
+    {
+      "id": "F-001",
+      "file": "filename",
+      "lines": "1-10",
+      "snippet": "code snippet here",
+      "severity": "Critical",
+      "type": "SQL Injection",
+      "poc": "how to exploit",
+      "root_cause": "why it is vulnerable",
+      "remediation": "how to fix",
+      "remediation_code": "fixed code example",
+      "tests": ["test step 1", "test step 2"]
+    }
+  ],
+  "roadmap": {
+    "week_1": ["action 1", "action 2"],
+    "month_1": ["action 1"],
+    "long_term": ["action 1"]
+  },
+  "deps": {
+    "vulnerable": ["package@version"],
+    "outdated": ["package@version"],
+    "action": "what to do"
+  },
+  "tools": [
+    { "name": "tool name", "cmd": "command to run", "purpose": "what it does" }
+  ],
+  "practices": ["best practice 1", "best practice 2"],
+  "commands": ["npm audit", "npx semgrep"],
+  "uncertainties": ["item needing runtime check"]
+}
+
+STRICT RULES:
+- Return valid JSON only. No text before or after the JSON object.
+- Max 8 findings.
+- No newline characters inside string values — use spaces instead.
+- risk_score is an integer from 0 to 100.
+- severity must be exactly one of: Critical, High, Medium, Low`;
+
+// ─── KEY SCREEN ──────────────────────────────────────────────────────────────
+document.getElementById('codeArea').value = SAMPLE;
+
+function toggleShow() {
+  var inp = document.getElementById('keyInput');
+  var btn = document.getElementById('toggleBtn');
+  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
+  else { inp.type = 'password'; btn.textContent = '👁'; }
+}
+
+function clearKeyErr() {
+  document.getElementById('keyErr').textContent = '';
+  document.getElementById('keyInput').classList.remove('err');
+}
+
+function showKeyErr(msg) {
+  document.getElementById('keyErr').textContent = '⚠ ' + msg;
+  document.getElementById('keyInput').classList.add('err');
+}
+
+var GEMINI_MODEL = 'gemini-2.5-flash';
+// Replace this with YOUR Vercel proxy URL after deploying (see README)
+var PROXY_URL = 'https://secureaudit-proxy-8x37zqe48-cyberwolf6938s-projects.vercel.app/api/gemini';
+
+async function handleStart() {
+  var key = document.getElementById('keyInput').value.trim();
+  if (!key) { showKeyErr('Please enter your API key.'); return; }
+  if (key.length < 15) { showKeyErr('Key looks too short. Please paste the full key.'); return; }
+
+  var btn = document.getElementById('startBtn');
+  btn.textContent = '⟳  Verifying Key…';
+  btn.disabled = true;
+
+  try {
+    var res = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        apiKey: key,
+        model: GEMINI_MODEL,
+        body: {
+          contents: [{ parts: [{ text: 'hi' }] }],
+          generationConfig: { maxOutputTokens: 10 }
+        }
+      })
+    });
+    if (res.status === 400 || res.status === 403) {
+      showKeyErr('Invalid API key. Please check and try again.');
+      btn.textContent='▶  Start Auditing'; btn.disabled=false; return;
+    }
+    if (!res.ok) {
+      var errBody = await res.json().catch(function(){ return {}; });
+      showKeyErr((errBody.error && errBody.error.message) || ('HTTP '+res.status));
+      btn.textContent='▶  Start Auditing'; btn.disabled=false; return;
+    }
+    API_KEY = key;
+    document.getElementById('keyScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+  } catch(e) {
+    showKeyErr('Connection failed. Check your internet.');
+  }
+  btn.textContent = '▶  Start Auditing';
+  btn.disabled = false;
+}
+
+function changeKey() {
+  API_KEY = '';
+  REPORT = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('keyScreen').style.display = 'flex';
+  document.getElementById('keyInput').value = '';
+  clearKeyErr();
+}
+
+// ─── FILE UPLOAD ─────────────────────────────────────────────────────────────
+function handleFile(e) {
+  var f = e.target.files[0];
+  if (!f) return;
+  document.getElementById('filenameInput').value = f.name;
+  var r = new FileReader();
+  r.onload = function(ev){ document.getElementById('codeArea').value = ev.target.result; };
+  r.readAsText(f);
+}
+
+// ─── AUDIT ───────────────────────────────────────────────────────────────────
+async function runAudit() {
+  var code = document.getElementById('codeArea').value.trim();
+  var filename = document.getElementById('filenameInput').value.trim();
+  if (!code) return;
+
+  // UI: loading state
+  var btn = document.getElementById('runBtn');
+  btn.textContent = '⟳  Analyzing…';
+  btn.disabled = true;
+  document.getElementById('runHint').style.display = 'none';
+  document.getElementById('runErr').style.display = 'none';
+  document.getElementById('riskBanner').style.display = 'none';
+  document.getElementById('tabs').style.display = 'none';
+  REPORT = null;
+  FILTER = 'All';
+  showLoading();
+
+  try {
+    var res = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        apiKey: API_KEY,
+        model: GEMINI_MODEL,
+        body: {
+          contents: [{ parts: [{ text: 'File: '+filename+'\n\n'+code }] }],
+          systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          generationConfig: { maxOutputTokens: 4000, temperature: 0.4 }
+        }
+      })
+    });
+
+    if (!res.ok) {
+      var errData = await res.json().catch(function(){ return {}; });
+      throw new Error((errData.error && errData.error.message) || 'HTTP '+res.status);
+    }
+
+    var data = await res.json();
+    var candidate = data.candidates && data.candidates[0];
+    var raw = candidate && candidate.content && candidate.content.parts
+      ? candidate.content.parts.map(function(p){ return p.text||''; }).join('')
+      : '';
+    if (!raw) throw new Error('Empty response from model. Try again or shorten the input code.');
+    REPORT = extractJSON(raw);
+    renderReport();
+
+  } catch(e) {
+    showError(e.message || 'Unknown error. Please try again.');
+  }
+
+  btn.textContent = '▶  Run Security Audit';
+  btn.disabled = false;
+}
+
+function extractJSON(str) {
+  str = str.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+  var start = str.indexOf('{');
+  var end   = str.lastIndexOf('}');
+  if (start === -1 || end === -1) throw new Error('No JSON object found in response');
+  return JSON.parse(str.slice(start, end+1));
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function showLoading() {
+  document.getElementById('content').innerHTML =
+    '<div class="loading-state"><div class="spin">⟳</div><div style="font-size:13px;color:#445">Running security analysis…</div><div style="font-size:11px;color:#334;margin-top:6px">Checking OWASP Top 10, secrets, auth flaws…</div></div>';
+}
+
+function showError(msg) {
+  document.getElementById('content').innerHTML =
+    '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title" style="color:#FF6B6B">Analysis Failed</div><div class="empty-desc" style="color:#FF6B6B">'+esc(msg)+'</div></div>';
+}
+
+function renderReport() {
+  var r = REPORT;
+  // Risk banner
+  var score = r.risk_score || 0;
+  var clr = score>=75?'#FF3B3B':score>=50?'#FF8C00':score>=25?'#FFD700':'#4FC3F7';
+  var lbl = score>=75?'Critical':score>=50?'High':score>=25?'Medium':'Low';
+  document.getElementById('riskScoreVal').textContent = score;
+  document.getElementById('riskScoreVal').style.color = clr;
+  document.getElementById('riskScoreLbl').textContent = lbl;
+  document.getElementById('riskScoreLbl').style.color = clr;
+  document.getElementById('summaryText').textContent = r.summary || '';
+
+  var counts = {Critical:0,High:0,Medium:0,Low:0};
+  (r.findings||[]).forEach(function(f){ if(counts[f.severity]!==undefined) counts[f.severity]++; });
+  document.getElementById('cntCritical').textContent = counts.Critical;
+  document.getElementById('cntHigh').textContent     = counts.High;
+  document.getElementById('cntMedium').textContent   = counts.Medium;
+  document.getElementById('cntLow').textContent      = counts.Low;
+
+  // Update tab label
+  document.getElementById('tab-findings').textContent = 'Findings ('+( r.findings||[]).length+')';
+
+  document.getElementById('riskBanner').style.display = 'flex';
+  document.getElementById('tabs').style.display = 'flex';
+
+  CUR_TAB = 'findings';
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.getElementById('tab-findings').classList.add('active');
+  renderFindings();
+}
+
+function switchTab(name, btn) {
+  CUR_TAB = name;
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  if(name==='findings')  renderFindings();
+  else if(name==='roadmap')   renderRoadmap();
+  else if(name==='tools')     renderTools();
+  else if(name==='deps')      renderDeps();
+  else if(name==='practices') renderPractices();
+}
+
+function setFilter(s) {
+  FILTER = s;
+  renderFindings();
+}
+
+function toggleFinding(id) {
+  var body = document.getElementById('fb-'+id);
+  var icon = document.getElementById('fi-'+id);
+  if (body.style.display === 'none') {
+    body.style.display = 'block';
+    icon.textContent = '▲';
+  } else {
+    body.style.display = 'none';
+    icon.textContent = '▼';
+  }
+}
+
+// ─── FINDINGS ────────────────────────────────────────────────────────────────
+function renderFindings() {
+  var findings = (REPORT && REPORT.findings) || [];
+  var filtered = FILTER==='All' ? findings : findings.filter(function(f){ return f.severity===FILTER; });
+  var counts   = {Critical:0,High:0,Medium:0,Low:0};
+  findings.forEach(function(f){ if(counts[f.severity]!==undefined) counts[f.severity]++; });
+
+  var html = '<div class="filter-bar">';
+  ['All','Critical','High','Medium','Low'].forEach(function(s){
+    var active = FILTER===s ? (s==='All'?'active-all':'active-'+s) : '';
+    var label  = s==='All' ? 'All' : s+' ('+counts[s]+')';
+    html += '<button class="filter-btn '+active+'" onclick="setFilter(\''+s+'\')">'+label+'</button>';
+  });
+  html += '</div>';
+
+  if (filtered.length===0) {
+    html += '<div style="color:#445;font-size:12px;padding:10px 0">No findings for this severity level.</div>';
+  }
+
+  filtered.forEach(function(f){
+    var sc = SEV_COLORS[f.severity] || SEV_COLORS.Low;
+    var icon = TYPE_ICONS[f.type] || '🔍';
+    html += '<div class="finding-card" style="border:1px solid '+sc.border+';background:'+sc.bg+'">';
+    html += '<div class="finding-header" onclick="toggleFinding(\''+esc(f.id)+'\')">';
+    html += '<div class="finding-dot" style="background:'+sc.color+'"></div>';
+    html += '<span class="finding-id" style="color:'+sc.color+'">'+esc(f.id)+'</span>';
+    html += '<span class="finding-sev" style="background:'+sc.badge+';color:'+sc.color+'">'+esc(f.severity)+'</span>';
+    html += '<span class="finding-type">'+icon+' '+esc(f.type)+'</span>';
+    html += '<span class="finding-loc">'+esc(f.file)+':'+esc(f.lines)+'</span>';
+    html += '<span class="finding-toggle" id="fi-'+esc(f.id)+'">▼</span>';
+    html += '</div>';
+
+    html += '<div class="finding-body" id="fb-'+esc(f.id)+'" style="border-top:1px solid '+sc.border+';display:none">';
+
+    if(f.snippet){
+      html += '<div class="sub-label" style="color:#445">Vulnerable Code</div>';
+      html += '<pre class="code-block code-vuln">'+esc(f.snippet)+'</pre>';
+    }
+
+    html += '<div class="two-col">';
+    html += '<div><div class="sub-label" style="color:#445">Root Cause</div><div class="text-sm">'+esc(f.root_cause)+'</div></div>';
+    html += '<div><div class="sub-label" style="color:#445">Proof of Concept</div><div class="text-sm-i">'+esc(f.poc)+'</div></div>';
+    html += '</div>';
+
+    html += '<div class="sub-label" style="color:#4FC3F7;margin-top:4px">Remediation</div>';
+    html += '<div class="text-sm" style="margin-bottom:8px">'+esc(f.remediation)+'</div>';
+    if(f.remediation_code){
+      html += '<pre class="code-block code-fix">'+esc(f.remediation_code)+'</pre>';
+    }
+
+    if(f.tests && f.tests.length){
+      html += '<div class="sub-label" style="color:#FFD700;margin-top:12px">Verification Tests</div>';
+      f.tests.forEach(function(t){
+        html += '<div class="test-item">'+esc(t)+'</div>';
+      });
+    }
+
+    html += '</div></div>';
+  });
+
+  document.getElementById('content').innerHTML = html;
+}
+
+// ─── ROADMAP ─────────────────────────────────────────────────────────────────
+function renderRoadmap() {
+  var rm = (REPORT && REPORT.roadmap) || {};
+  var cols = [
+    {key:'week_1',  label:'Week 1',    sub:'Immediate — highest risk',   color:'#FF3B3B', icon:'🚨'},
+    {key:'month_1', label:'Month 1',   sub:'Short-term hardening',       color:'#FF8C00', icon:'⚡'},
+    {key:'long_term',label:'Long-term',sub:'Architectural improvements', color:'#4FC3F7', icon:'🏗'},
+  ];
+  var html = '<div class="roadmap-grid">';
+  cols.forEach(function(col){
+    html += '<div class="roadmap-card">';
+    html += '<div class="roadmap-head"><span style="font-size:18px">'+col.icon+'</span><div><div class="roadmap-title" style="color:'+col.color+'">'+col.label+'</div><div class="roadmap-sub">'+col.sub+'</div></div></div>';
+    (rm[col.key]||[]).forEach(function(item){
+      html += '<div class="roadmap-item"><div class="roadmap-dot" style="background:'+col.color+'"></div><div class="text-sm">'+esc(item)+'</div></div>';
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  document.getElementById('content').innerHTML = html;
+}
+
+// ─── TOOLS ───────────────────────────────────────────────────────────────────
+function renderTools() {
+  var tools = (REPORT && REPORT.tools) || [];
+  var cmds  = (REPORT && REPORT.commands) || [];
+  var html = '<div style="font-size:11px;color:#445;margin-bottom:15px">Recommended SAST/SCA tools to run locally on your Node.js project:</div>';
+  tools.forEach(function(t){
+    html += '<div class="tool-card">';
+    html += '<div class="tool-head"><span style="font-size:13px">🔧</span><span class="tool-name">'+esc(t.name)+'</span><span class="tool-purpose">'+esc(t.purpose)+'</span></div>';
+    html += '<pre class="cmd-block">$ '+esc(t.cmd)+'</pre>';
+    html += '</div>';
+  });
+  if(cmds.length){
+    html += '<div class="tool-card"><div style="font-size:11px;color:#4FC3F7;font-weight:700;margin-bottom:10px">Quick CLI Reference</div>';
+    cmds.forEach(function(c){ html += '<pre class="cmd-block" style="margin-bottom:7px">$ '+esc(c)+'</pre>'; });
+    html += '</div>';
+  }
+  document.getElementById('content').innerHTML = html;
+}
+
+// ─── DEPS ────────────────────────────────────────────────────────────────────
+function renderDeps() {
+  var d = (REPORT && REPORT.deps) || {};
+  var html = '<div class="deps-grid">';
+
+  html += '<div class="dep-card" style="border:1px solid #FF3B3B44">';
+  html += '<div style="font-weight:700;color:#FF3B3B;margin-bottom:11px;font-size:12px">⚠ Vulnerable Packages</div>';
+  if(!(d.vulnerable&&d.vulnerable.length)){
+    html += '<div style="color:#445;font-size:11px">None detected — run <code style="color:#4CAF50">npm audit</code></div>';
+  } else {
+    d.vulnerable.forEach(function(v){ html += '<div class="dep-item" style="color:#FF6B6B">'+esc(v)+'</div>'; });
+  }
+  html += '</div>';
+
+  html += '<div class="dep-card" style="border:1px solid #FF8C0044">';
+  html += '<div style="font-weight:700;color:#FF8C00;margin-bottom:11px;font-size:12px">📦 Outdated Packages</div>';
+  if(!(d.outdated&&d.outdated.length)){
+    html += '<div style="color:#445;font-size:11px">None detected — run <code style="color:#4CAF50">npm outdated</code></div>';
+  } else {
+    d.outdated.forEach(function(v){ html += '<div class="dep-item" style="color:#FFB347">'+esc(v)+'</div>'; });
+  }
+  html += '</div>';
+
+  html += '<div class="dep-full"><div style="font-weight:700;color:#4FC3F7;margin-bottom:8px;font-size:12px">Recommended Action</div>';
+  html += '<div class="text-sm">'+esc(d.action||'Run npm audit and npm outdated to check dependencies.')+'</div></div>';
+
+  html += '</div>';
+  document.getElementById('content').innerHTML = html;
+}
+
+// ─── PRACTICES ───────────────────────────────────────────────────────────────
+function renderPractices() {
+  var p = (REPORT && REPORT.practices) || [];
+  var u = (REPORT && REPORT.uncertainties) || [];
+  var html = '<div class="practices-grid">';
+  p.forEach(function(item){
+    html += '<div class="practice-item"><div style="color:#4FC3F7;font-size:13px">✓</div><div class="text-sm">'+esc(item)+'</div></div>';
+  });
+  html += '</div>';
+  if(u.length){
+    html += '<div class="uncertainty-box"><div style="font-weight:700;color:#FFD700;margin-bottom:10px;font-size:12px">⚠ Needs Runtime Verification</div>';
+    u.forEach(function(item){ html += '<div class="uncertainty-item">'+esc(item)+'</div>'; });
+    html += '</div>';
+  }
+  document.getElementById('content').innerHTML = html;
+}
+
+// ─── HELPER ──────────────────────────────────────────────────────────────────
+function esc(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
